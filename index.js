@@ -52,7 +52,7 @@ vkAuth()
 
         for (let i = 0; i < friendsItemsVK.items.length; i++) {
             for (let cookie in cookieList) {
-                if(i == friendsItemsVK.items.length -1 ){
+                if (i == friendsItemsVK.items.length - 1) {
                     friendsItemsVK.items.pop();
                     break;
                 }
@@ -136,13 +136,24 @@ function setCookie(name, value, options) {
     document.cookie = updatedCookie;
 }
 
+function getCurrentParent(from, to) {
+    do {
+        if (from.classList.contains(to)) {
+            return from;
+        }
+    } while (from = from.parentElement);
+
+    return null;
+}
+
 function DragAndDrop() {
     let currentZone;
     let emptyDiv = document.createElement('div');
     emptyDiv.classList.add('empty-div');
 
+
     document.addEventListener('dragstart', (e) => {
-        const zone = getCurrentZone(e.target);
+        const zone = getCurrentParent(e.target, 'dnd-zone');
 
         if (zone && e.target.classList.contains('friends-list__item')) {
             currentZone = { startZone: zone, node: e.target };
@@ -150,45 +161,73 @@ function DragAndDrop() {
     });
 
     document.addEventListener('dragover', (e) => {
-        const zone = getCurrentZone(e.target);
+        const zone = getCurrentParent(e.target, 'dnd-zone');
 
         if (zone) {
+            if  (e.target.classList.contains('friends-list__item')) {
+                if (zone && currentZone.startZone !== zone) {
+                    if (e.offsetY > (e.target.offsetHeight / 2)) {
+                        e.target.parentElement.insertBefore(emptyDiv, e.target.nextElementSibling);
+                    } else {
+                        e.target.parentElement.insertBefore(emptyDiv, e.target);
+                    }
+                }
+            }
+
             e.preventDefault();
         }
     });
 
     document.addEventListener('drop', (e) => {
         if (currentZone) {
-            const zone = getCurrentZone(e.target);
-
+            const zone = getCurrentParent(e.target, 'dnd-zone');
 
             e.preventDefault();
 
             if (zone && currentZone.startZone !== zone) {
-                if (e.target.classList.contains('friends-list__item')) {
+                if (e.target.classList.contains('friends-list__item') || e.target.classList.contains('empty-div')) {
                     iconChange(currentZone.node);
+
                     zone.insertBefore(currentZone.node, e.target.nextElementSibling);
+
+                    e.target.parentElement.removeChild(emptyDiv);
                 } else {
+                    iconChange(currentZone.node);
+
                     zone.insertBefore(currentZone.node, zone.lastElementChild);
                 }
             }
 
+            emptyDiv.classList.remove('empty-div');
             currentZone = null;
         }
     });
-
-    function getCurrentZone(from) {
-        do {
-            if (from.classList.contains('dnd-zone')) {
-                return from;
-            }
-        } while (from = from.parentElement);
-
-        return null;
-    }
 }
 
 DragAndDrop();
+
+function filter(inputId, zoneId) {
+    const zone = document.querySelector('#' + zoneId);
+    const input = document.querySelector('#' + inputId);
+
+    input.addEventListener('keyup', (e) => {
+        for (let item in zone.children) {
+            if (e.target.value) {
+                if (!(isMatching(zone.children[item].children[1].textContent, e.target.value))) {
+                    zone.children[item].style.display = 'none';
+                } else {
+                    zone.children[item].style.display = 'flex';
+                }
+            } else {
+                zone.children[item].style.display = 'flex';
+            }
+        }
+    });
+}
+
+filter('input-filter-new', 'friends-list__new');
+filter('input-filter-vk', 'friends-list__vk');
+
 
 document.addEventListener('click', (e) => {
     let newFriendList = document.querySelector('#friends-list__new');
@@ -225,24 +264,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-function filter(inputId, zoneId) {
-    const zone = document.querySelector('#' + zoneId)
-    const input = document.querySelector('#' + inputId);
 
-    input.addEventListener('keyup', (e) => {
-        for (let item in zone.children) {
-            if (e.target.value) {
-                if (!(isMatching(zone.children[item].children[1].textContent, e.target.value))) {
-                    zone.children[item].style.display = 'none';
-                } else {
-                    zone.children[item].style.display = 'flex';
-                }
-            } else {
-                zone.children[item].style.display = 'flex';
-            }
-        }
-    });
-}
 
-filter('input-filter-new', 'friends-list__new');
-filter('input-filter-vk', 'friends-list__vk');
+
+
